@@ -22,6 +22,7 @@ use craft\helpers\ArrayHelper;
 use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use craft\models\MatrixBlockType;
+use craft\services\Elements;
 use craft\validators\ArrayValidator;
 use craft\web\assets\matrix\MatrixAsset;
 use craft\web\assets\matrixsettings\MatrixSettingsAsset;
@@ -490,7 +491,7 @@ class Matrix extends Field implements EagerLoadingFieldInterface
                 $block = new MatrixBlock();
                 $block->fieldId = $this->id;
                 $block->typeId = $blockType->id;
-                $block->siteId = $element->siteId;
+                $block->siteId = $element->siteId ?? Craft::$app->getSites()->getCurrentSite()->id;
                 $value[] = $block;
             }
         }
@@ -547,7 +548,7 @@ class Matrix extends Field implements EagerLoadingFieldInterface
 
         foreach ($value->all() as $i => $block) {
             /** @var MatrixBlock $block */
-            if ($element->getScenario() === Element::SCENARIO_LIVE) {
+            if ($block->enabled && $element->getScenario() === Element::SCENARIO_LIVE) {
                 $block->setScenario(Element::SCENARIO_LIVE);
             }
 
@@ -694,9 +695,12 @@ class Matrix extends Field implements EagerLoadingFieldInterface
      */
     public function beforeDelete(): bool
     {
-        Craft::$app->getMatrix()->deleteMatrixField($this);
+        if (!parent::beforeDelete()) {
+            return false;
+        }
 
-        return parent::beforeDelete();
+        Craft::$app->getMatrix()->deleteMatrixField($this);
+        return true;
     }
 
     /**
@@ -869,6 +873,11 @@ class Matrix extends Field implements EagerLoadingFieldInterface
             foreach (array_keys($value) as $blockId) {
                 if (is_numeric($blockId) && $blockId != 0) {
                     $ids[] = $blockId;
+
+                    // If that block was duplicated earlier in this request, check for that as well.
+                    if (isset(Elements::$duplicatedElementIds[$blockId])) {
+                        $ids[] = Elements::$duplicatedElementIds[$blockId];
+                    }
                 }
             }
 
@@ -886,7 +895,13 @@ class Matrix extends Field implements EagerLoadingFieldInterface
             $ownerId = null;
         }
 
-        $isLivePreview = Craft::$app->getRequest()->getIsLivePreview();
+        // Should we ignore disabled blocks?
+        $request = Craft::$app->getRequest();
+        $hideDisabledBlocks = !$request->getIsConsoleRequest() && (
+            $request->getToken() !== null ||
+            $request->getIsLivePreview()
+        );
+
         $blocks = [];
         $sortOrder = 0;
         $prevBlock = null;
@@ -897,11 +912,21 @@ class Matrix extends Field implements EagerLoadingFieldInterface
             }
 
             // Skip disabled blocks on Live Preview requests
-            if ($isLivePreview && empty($blockData['enabled'])) {
+            if ($hideDisabledBlocks && empty($blockData['enabled'])) {
                 continue;
             }
 
             $blockType = $blockTypes[$blockData['type']];
+
+            // If this is a preexisting block but we don't have a record of it,
+            // check to see if it was recently duplicated.
+            if (
+                strpos($blockId, 'new') !== 0 &&
+                !isset($oldBlocksById[$blockId]) &&
+                isset(Elements::$duplicatedElementIds[$blockId])
+            ) {
+                $blockId = Elements::$duplicatedElementIds[$blockId];
+            }
 
             // Is this new? (Or has it been deleted?)
             if (strpos($blockId, 'new') === 0 || !isset($oldBlocksById[$blockId])) {
