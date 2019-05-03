@@ -23,7 +23,6 @@ use craft\helpers\Db;
 use craft\helpers\ElementHelper;
 use craft\helpers\Html;
 use craft\helpers\MigrationHelper;
-use craft\helpers\ProjectConfig as ProjectConfigHelper;
 use craft\helpers\StringHelper;
 use craft\migrations\CreateMatrixContentTable;
 use craft\models\FieldLayout;
@@ -240,7 +239,7 @@ class Matrix extends Component
             'field' => $parentField->uid,
             'name' => $blockType->name,
             'handle' => $blockType->handle,
-            'sortOrder' => $blockType->sortOrder,
+            'sortOrder' => (int)$blockType->sortOrder,
         ];
 
         // Now, take care of the field layout for this block type
@@ -302,11 +301,16 @@ class Matrix extends Component
             return;
         }
 
-        ProjectConfigHelper::ensureAllFieldsProcessed();
-
         $blockTypeUid = $event->tokenMatches[0];
         $data = $event->newValue;
         $previousData = $event->oldValue;
+
+        // Make sure the field has been synced
+        $fieldId = Db::idByUid(Table::FIELDS, $data['field']);
+        if ($fieldId === null) {
+            Craft::$app->getProjectConfig()->defer($event, [$this, __FUNCTION__]);
+            return;
+        }
 
         $fieldsService = Craft::$app->getFields();
         $contentService = Craft::$app->getContent();
@@ -324,7 +328,7 @@ class Matrix extends Component
             $blockTypeRecord = $this->_getBlockTypeRecord($blockTypeUid);
 
             // Set the basic info on the new block type record
-            $blockTypeRecord->fieldId = Db::idByUid(Table::FIELDS, $data['field']);
+            $blockTypeRecord->fieldId = $fieldId;
             $blockTypeRecord->name = $data['name'];
             $blockTypeRecord->handle = $data['handle'];
             $blockTypeRecord->sortOrder = $data['sortOrder'];
@@ -632,7 +636,11 @@ class Matrix extends Component
      */
     public function deleteMatrixField(MatrixField $matrixField): bool
     {
-        $transaction = Craft::$app->getDb()->beginTransaction();
+        // Clear the schema cache
+        $db = Craft::$app->getDb();
+        $db->getSchema()->refresh();
+
+        $transaction = $db->beginTransaction();
         try {
             $originalContentTable = Craft::$app->getContent()->contentTable;
             Craft::$app->getContent()->contentTable = $matrixField->contentTable;
@@ -645,7 +653,7 @@ class Matrix extends Component
             }
 
             // Drop the content table
-            Craft::$app->getDb()->createCommand()
+            $db->createCommand()
                 ->dropTable($matrixField->contentTable)
                 ->execute();
 

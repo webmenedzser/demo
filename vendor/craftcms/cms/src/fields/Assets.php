@@ -176,7 +176,7 @@ class Assets extends BaseRelationField
     {
         $fileKindOptions = [];
 
-        foreach (AssetsHelper::getFileKinds() as $value => $kind) {
+        foreach (AssetsHelper::getAllowedFileKinds() as $value => $kind) {
             $fileKindOptions[] = ['value' => $value, 'label' => $kind['label']];
         }
 
@@ -402,7 +402,7 @@ class Assets extends BaseRelationField
                     $assetIds[] = $asset->id;
                 }
 
-                // Add the with newly uploaded IDs to the mix.
+                // Add the newly uploaded IDs to the mix.
                 if (\is_array($query->id)) {
                     $query = $this->normalizeValue(array_merge($query->id, $assetIds), $element);
                 } else {

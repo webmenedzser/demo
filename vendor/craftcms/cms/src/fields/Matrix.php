@@ -26,7 +26,6 @@ use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use craft\models\MatrixBlockType;
 use craft\services\Elements;
-use craft\services\Fields;
 use craft\validators\ArrayValidator;
 use craft\web\assets\matrix\MatrixAsset;
 use craft\web\assets\matrixsettings\MatrixSettingsAsset;
@@ -208,7 +207,7 @@ class Matrix extends Field implements EagerLoadingFieldInterface
                     $info = (new Query())
                         ->select(['uid', 'fieldLayoutId'])
                         ->from([TableName::MATRIXBLOCKTYPES])
-                        ->where(['id'=> $key])
+                        ->where(['id' => $key])
                         ->one();
 
                     if ($info) {
@@ -399,7 +398,6 @@ class Matrix extends Field implements EagerLoadingFieldInterface
         // Set the initially matched elements if $value is already set, which is the case if there was a validation
         // error or we're loading an entry revision.
         if (is_array($value) || $value === '') {
-            $query->anyStatus();
             $query->setCachedResult($this->_createBlocksFromSerializedData($value, $element));
         }
 
@@ -439,13 +437,22 @@ class Matrix extends Field implements EagerLoadingFieldInterface
         }
 
         if ($value === ':notempty:' || $value === ':empty:') {
-            $alias = 'matrixblocks_' . $this->handle;
-            $operator = ($value === ':notempty:' ? '!=' : '=');
+            $ns = $this->handle . '_' . StringHelper::randomString(5);
+            $condition = ['exists', (new Query())
+                ->from(TableName::MATRIXBLOCKS . " matrixblocks_$ns")
+                ->innerJoin(TableName::ELEMENTS . " elements_$ns", "[[elements_$ns.id]] = [[matrixblocks_$ns.id]]")
+                ->where("[[matrixblocks_$ns.ownerId]] = [[elements.id]]")
+                ->andWhere([
+                    "matrixblocks_$ns.fieldId" => $this->id,
+                    "elements_$ns.dateDeleted" => null,
+                ])
+            ];
 
-            $query->subQuery->andWhere(
-                "(select count([[{$alias}.id]]) from {{%matrixblocks}} {{{$alias}}} where [[{$alias}.ownerId]] = [[elements.id]] and [[{$alias}.fieldId]] = :fieldId) {$operator} 0",
-                [':fieldId' => $this->id]
-            );
+            if ($value === ':notempty:') {
+                $query->subQuery->andWhere($condition);
+            } else {
+                $query->subQuery->andWhere(['not', $condition]);
+            }
         } else if ($value !== null) {
             return false;
         }
@@ -489,10 +496,7 @@ class Matrix extends Field implements EagerLoadingFieldInterface
         }
 
         if ($value instanceof MatrixBlockQuery) {
-            $value = $value
-                ->limit(null)
-                ->anyStatus()
-                ->all();
+            $value = $value->getCachedResult() ?? $value->limit(null)->anyStatus()->all();
         }
 
         // Safe to set the default blocks?

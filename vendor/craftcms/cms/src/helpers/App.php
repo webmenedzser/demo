@@ -20,7 +20,6 @@ use craft\mail\Mailer;
 use craft\mail\Message;
 use craft\mail\transportadapters\Sendmail;
 use craft\models\MailSettings;
-use craft\mutex\FileMutex;
 use craft\services\ProjectConfig as ProjectConfigService;
 use craft\web\AssetManager;
 use craft\web\Request as WebRequest;
@@ -32,6 +31,7 @@ use yii\caching\FileCache;
 use yii\helpers\Inflector;
 use yii\log\Dispatcher;
 use yii\log\Logger;
+use yii\mutex\FileMutex;
 
 /**
  * App helper.
@@ -223,7 +223,8 @@ class App
         }
 
         $testValue = sprintf('%sM', ceil($testBytes / (1024 * 1024)));
-        set_error_handler(function(){});
+        set_error_handler(function() {
+        });
         $result = ini_set('memory_limit', $testValue);
         $newValue = ini_get('memory_limit');
         ini_set('memory_limit', $oldValue);

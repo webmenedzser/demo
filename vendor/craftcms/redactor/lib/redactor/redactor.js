@@ -1,11 +1,11 @@
 /*
     Redactor
-    Version 3.1.6
-    Updated: December 7, 2018
+    Version 3.1.8
+    Updated: April 3, 2019
 
     http://imperavi.com/redactor/
 
-    Copyright (c) 2009-2018, Imperavi Ltd.
+    Copyright (c) 2009-2019, Imperavi Ltd.
     License: http://imperavi.com/redactor/license/
 */
 (function() {
@@ -123,7 +123,7 @@ AjaxRequest.prototype = {
     }
 };
 var DomCache = [0];
-var DomExpando = 'data' + +new Date();
+var DomExpando = 'data' + new Date().getTime();
 var DomHClass = 'is-hidden';
 var DomHMClass = 'is-hidden-mobile';
 
@@ -1336,7 +1336,7 @@ var $R = function(selector, options)
 
 // Globals
 $R.app = [];
-$R.version = '3.1.6';
+$R.version = '3.1.8';
 $R.options = {};
 $R.modules = {};
 $R.services = {};
@@ -1820,7 +1820,7 @@ $R.lang['en'] = {
     "delete": "Delete",
     "text": "Text",
     "edit": "Edit",
-    "title": "Title",
+    "title": "Alt",
     "paragraph": "Normal text",
     "quote": "Quote",
     "code": "Code",
@@ -3055,9 +3055,9 @@ $R.add('service', 'caret', {
             if (tag === 'a')
             {
                 var textNode = this.utils.createInvisibleChar();
-                node.appendChild(textNode);
+                $R.dom(node).after(textNode);
 
-                range.setStartBefore(textNode);
+                range.selectNodeContents(textNode);
                 range.collapse(true);
             }
             else
@@ -3941,6 +3941,9 @@ $R.add('service', 'selection', {
         for (var i = 0; i < nodes.length; i++)
         {
             var node = this.getBlock(nodes[i]);
+            var $node = $R.dom(node);
+            if ($node.hasClass('non-editable')) continue;
+
             if (node && !this._isInNodesArray(filteredNodes, node))
             {
                 filteredNodes.push(node);
@@ -5317,7 +5320,7 @@ $R.add('class', 'toolbar.dropdown', {
         this.$btn.setActive();
 
         this.$doc.on('keyup.redactor.dropdown-' + this.uuid, this._handleKeyboard.bind(this));
-        this.$doc.on('click.redactor.dropdown-' + this.uuid + ' touchstart.redactor.dropdown-' + this.uuid, this.close.bind(this));
+        this.$doc.on('click.redactor.dropdown-' + this.uuid, this.close.bind(this));
 
         this.updatePosition();
         this.app.broadcast('dropdown.opened', e, this, this.$btn);
@@ -5593,7 +5596,8 @@ $R.add('service', 'cleaner', {
         html = this._setSpanAttr(html);
         html = this._setStyleCache(html);
         html = this.removeTags(html, this.deniedTags);
-        html = (this.opts.removeScript) ? this._removeScriptTag(html) : this._replaceScriptTag(html);
+        //html = (this.opts.removeScript) ? this._removeScriptTag(html) : this._replaceScriptTag(html);
+        html = (this.opts.removeScript) ? this._removeScriptTag(html) : html;
         html = (this.opts.removeComments) ? this.removeComments(html) : html;
         html = (this._isSpacedEmpty(html)) ? this.opts.emptyHtml : html;
 
@@ -6091,11 +6095,13 @@ $R.add('service', 'cleaner', {
         html = html.replace(/<b\sid="internal-source-marker(.*?)">([\w\W]*?)<\/b>/gi, "$2");
         html = html.replace(/<b(.*?)id="docs-internal-guid(.*?)">([\w\W]*?)<\/b>/gi, "$3");
 
-        html = html.replace(/<span[^>]*(font-style: italic; font-weight: bold|font-weight: bold; font-style: italic)[^>]*>([\w\W]*?)<\/span>/gi, '<b><i>$2</i></b>');
-        html = html.replace(/<span[^>]*(font-style: italic; font-weight: 700|font-weight: 700; font-style: italic)[^>]*>([\w\W]*?)<\/span>/gi, '<b><i>$2</i></b>');
-        html = html.replace(/<span[^>]*font-style: italic[^>]*>([\w\W]*?)<\/span>/gi, '<i>$1</i>');
-        html = html.replace(/<span[^>]*font-weight: bold[^>]*>([\w\W]*?)<\/span>/gi, '<b>$1</b>');
-        html = html.replace(/<span[^>]*font-weight: 700[^>]*>([\w\W]*?)<\/span>/gi, '<b>$1</b>');
+        html = html.replace(/<span[^>]*(font-style:\s?italic;\s?font-weight:\s?bold|font-weight:\s?bold;\s?font-style:\s?italic)[^>]*>([\w\W]*?)<\/span>/gi, '<b><i>$2</i></b>');
+        html = html.replace(/<span[^>]*(font-style:\s?italic;\s?font-weight:\s?600|font-weight:\s?600;\s?font-style:\s?italic)[^>]*>([\w\W]*?)<\/span>/gi, '<b><i>$2</i></b>');
+        html = html.replace(/<span[^>]*(font-style:\s?italic;\s?font-weight:\s?700|font-weight:\s?700;\s?font-style:\s?italic)[^>]*>([\w\W]*?)<\/span>/gi, '<b><i>$2</i></b>');
+        html = html.replace(/<span[^>]*font-style:\s?italic[^>]*>([\w\W]*?)<\/span>/gi, '<i>$1</i>');
+        html = html.replace(/<span[^>]*font-weight:\s?bold[^>]*>([\w\W]*?)<\/span>/gi, '<b>$1</b>');
+        html = html.replace(/<span[^>]*font-weight:\s?700[^>]*>([\w\W]*?)<\/span>/gi, '<b>$1</b>');
+        html = html.replace(/<span[^>]*font-weight:\s?600[^>]*>([\w\W]*?)<\/span>/gi, '<b>$1</b>');
 
         return html;
     },
@@ -6126,10 +6132,19 @@ $R.add('service', 'cleaner', {
         // parse Lists
         this._parseWordLists($wrapper);
 
-        $wrapper.find('[style]').removeAttr('style');
         $wrapper.find('[align]').removeAttr('align');
         $wrapper.find('[name]').removeAttr('name');
-        $wrapper.find('span').unwrap();
+        $wrapper.find('span').each(function(node)
+        {
+            var $node = $R.dom(node);
+            var str = $node.attr('style');
+            var matches = /mso-list:Ignore/.exec(str);
+
+            if (matches) $node.remove();
+            else $node.unwrap();
+
+        });
+        $wrapper.find('[style]').removeAttr('style');
         $wrapper.find("[class^='Mso']").removeAttr('class');
         $wrapper.find('a').filter(function(node) { return !node.hasAttribute('href'); }).unwrap();
 
@@ -6157,11 +6172,14 @@ $R.add('service', 'cleaner', {
     {
         var lastLevel = 0;
         var pnt = null;
+        var $item = null;
+        var setPnt = false;
 
         $wrapper.find('p').each(function(node)
         {
             var $node = $R.dom(node);
             var currentLevel = $node.data('_listLevel');
+
             if (currentLevel !== null)
             {
                 var txt = $node.text();
@@ -6190,22 +6208,35 @@ $R.add('service', 'cleaner', {
                     else
                     {
                         var $list = $R.dom(listTag);
-                        pnt.append($list);
-                    }
-                }
 
-                if (currentLevel < lastLevel)
-                {
-                    for (var i = 0; i < (lastLevel - currentLevel); i++)
-                    {
-                        pnt = pnt.parent();
+                        if ($item)
+                        {
+                            $item.append($list);
+                            pnt = $list;
+                            setPnt = true;
+
+                        }
+                        else
+                        {
+                            pnt.append($list);
+                        }
+
                     }
                 }
 
                 $node.find('span').first().unwrap();
-                pnt.append('<li>' + $node.html() + '</li>');
+                $item = $R.dom('<li>' + $node.html().trim() + '</li>');
+                pnt.append($item);
                 $node.remove();
+
+                if (setPnt)
+                {
+                    pnt = pnt.parent();
+                }
+
                 lastLevel = currentLevel;
+                setPnt = false;
+
             }
             else
             {
@@ -6363,7 +6394,7 @@ $R.add('class', 'cleaner.figure', {
 
         if (this.detector.isIe())
         {
-            $wrapper.find('[data-redactor-type=table]').attr('contenteditable', true);
+            $wrapper.find('[data-redactor-type=table]').removeAttr('contenteditable');
         }
 
         $wrapper.find('figcaption, td, th').attr('contenteditable', true);
@@ -6385,7 +6416,7 @@ $R.add('class', 'cleaner.figure', {
         $wrapper.find('figure').removeClass('redactor-component redactor-component-active redactor-uploaded-figure');
 
         // unconvert
-        $wrapper.find('[data-redactor-type=variable]').removeClass('redactor-component');
+        $wrapper.find('[data-redactor-type=variable]').removeClass('redactor-component redactor-component-active');
         $wrapper.find('figure[data-redactor-type=line]').unwrap();
         $wrapper.find('figure[data-redactor-type=widget]').each(this._unconvertWidget.bind(this));
         $wrapper.find('figure[data-redactor-type=form]').each(this._unconvertForm.bind(this));
@@ -6440,7 +6471,18 @@ $R.add('class', 'cleaner.figure', {
 
         if ($figure.length === 0)
         {
-            $figure = ($link.length !== 0) ? $link.wrap('<figure>') : $node.wrap('<figure>');
+
+            var $parent = ($link.length !== 0) ? $link.closest('p') : $node.closest('p');
+            if (this.opts.imageFigure === false && $parent.length !== 0)
+            {
+                var $el = this.utils.replaceToTag($parent, 'figure');
+                $figure = $el;
+                $figure.addClass('redactor-replace-figure');
+            }
+            else
+            {
+                $figure = ($link.length !== 0) ? $link.wrap('<figure>') : $node.wrap('<figure>');
+            }
         }
         else
         {
@@ -6559,15 +6601,27 @@ $R.add('class', 'cleaner.figure', {
         {
             $node.removeClass('redactor-keep-figure');
         }
+
         // unwrap figure
-        else if (this.opts.imageFigure === false)
+        else if (type === 'image' && this.opts.imageFigure === false)
         {
             var hasFigcaption = ($node.find('figcaption').length !== 0);
             if (!hasFigcaption)
             {
-                $node.unwrap();
+                // replace
+                if ($node.hasClass('redactor-replace-figure'))
+                {
+                    $node.removeClass('redactor-replace-figure');
+                    this.utils.replaceToTag($node, 'p');
+                }
+                else
+                {
+                    $node.unwrap();
+                }
             }
         }
+
+        $node.removeClass('redactor-replace-figure');
     },
 
     // wrap
@@ -6645,6 +6699,18 @@ $R.add('class', 'cleaner.paragraphize', {
         // store tags
         html = this._storeTags(html);
 
+        // store comments
+        var storeComments = [];
+        var commentsMatch = html.match(new RegExp('<!--([\\w\\W]*?)-->', 'gi'));
+        if (commentsMatch !== null)
+        {
+            for (var i = 0; i < commentsMatch.length; i++)
+            {
+                html = html.replace(commentsMatch[i], '#####xstarthtmlcommentzz' + i + 'xendhtmlcommentzz#####');
+                storeComments.push(commentsMatch[i]);
+            }
+        }
+
         // remove new lines
         html = html.trim();
 
@@ -6681,6 +6747,12 @@ $R.add('class', 'cleaner.paragraphize', {
 
         // restore tags
         html = this._restoreTags(html);
+
+        // restore comments
+        for (var i = 0; i < storeComments.length; i++)
+        {
+            html = html.replace('#####xstarthtmlcommentzz' + i + 'xendhtmlcommentzz#####', storeComments[i]);
+        }
 
         // clean restored
         html = (this.opts.breakline) ? html : html.replace(new RegExp('<' + markupTag + '><br\\s?/?></' + markupTag + '>', 'gi'), '<' + markupTag + '></' + markupTag + '>');
@@ -6996,6 +7068,13 @@ $R.add('class', 'inspector.parser', {
         this.el = el;
         this.$el = $R.dom(this.el);
         this.node = this.$el.get();
+
+        // comment node
+        if (this.node && this.node.nodeType === 8)
+        {
+            this.node = false;
+        }
+
         this.$component = this.$el.closest('.redactor-component', '.redactor-in');
     },
     // is
@@ -8286,7 +8365,14 @@ $R.add('service', 'block', {
             nodes = this._replaceBlocks(blocks);
             nodes = this._sendNodes(nodes);
 
-            setTimeout(function() { this.selection.restore(); }.bind(this), 0);
+            if (this.selection.isCollapsed() && blocks.length === 1 && this.utils.isEmpty(blocks[0]))
+            {
+                this.caret.setStart(nodes[0]);
+            }
+            else
+            {
+                setTimeout(function() { this.selection.restore(); }.bind(this), 1);
+            }
 
             return nodes;
         }
@@ -9114,7 +9200,7 @@ $R.add('service', 'autoparser', {
     },
     parse: function(html)
     {
-        var tags = ['figure', 'pre', 'iframe', 'code', 'a', 'img'];
+        var tags = ['figure', 'form', 'pre', 'iframe', 'code', 'a', 'img'];
         var stored = [];
         var z = 0;
 
@@ -11603,6 +11689,10 @@ $R.add('module', 'contextbar', {
             {
                 $R.dom(this.opts.scrollTarget).on('scroll.redactor-context', this.close.bind(this));
             }
+            else if (this.opts.maxHeight !== false)
+            {
+                $editor.on('scroll.redactor-context', this.close.bind(this));
+            }
         }
     },
     stop: function()
@@ -11687,6 +11777,7 @@ $R.add('module', 'contextbar', {
         var top, left;
         var isTarget = this.toolbar.isTarget();
         var offset = (isTarget) ? $el.position() : $el.offset();
+
         var width = $el.width();
         var height = $el.height();
 
@@ -11735,10 +11826,20 @@ $R.add('class', 'contextbar.button', {
     _init: function()
     {
         this.parse('<a>');
-        this.attr('href', '#');
 
-        this._buildTitle();
-        this._buildMessage();
+        if (typeof this.obj.title !== 'string')
+        {
+            this.attr('target', '_blank');
+            this.attr('href', this.obj.title.attr('href'));
+            this.html(this.obj.title.attr('href'));
+        }
+        else
+        {
+            this.attr('href', '#');
+
+            this._buildTitle();
+            this._buildMessage();
+        }
     },
     _buildTitle: function()
     {
@@ -12247,16 +12348,17 @@ $R.add('class', 'toolbar.fixed', {
 
         var toolbarHeight = $toolbar.height();
         var toleranceEnd = 60;
-        var containerOffset = $container.offset();
+        var containerOffset = (this.toolbar.isTarget()) ? $container.position() : $container.offset();
         var boxOffset = containerOffset.top;
         var boxEnd = boxOffset + $container.height() - toleranceEnd;
         var scrollOffset = this.$fixedTarget.scrollTop() + this.opts.toolbarFixedTopOffset;
         var top = (!this.toolbar.isTarget()) ? 0 : this.$fixedTarget.offset().top - this.$win.scrollTop();
 
+
         if (scrollOffset > boxOffset && scrollOffset < boxEnd)
         {
             var position = (this.detector.isDesktop()) ? 'fixed' : 'absolute';
-            top = (this.detector.isDesktop()) ? top : (scrollOffset - boxOffset + this.opts.toolbarFixedTopOffset);
+            top = (this.detector.isDesktop()) ? top : (scrollOffset - boxOffset);
 
             if (this.detector.isMobile())
             {
@@ -12274,11 +12376,23 @@ $R.add('class', 'toolbar.fixed', {
 
             $wrapper.height(toolbarHeight);
             $toolbar.addClass('redactor-toolbar-fixed');
-            $toolbar.css({
-                position: position,
-                top: (top + this.opts.toolbarFixedTopOffset) + 'px',
-                width: $container.width() + 'px'
-            });
+
+            if ($container.hasClass('redactor-box-fullscreen'))
+            {
+                $toolbar.css({
+                    position: position,
+                    top: '0px',
+                    width: $container.width() + 'px'
+                });
+            }
+            else
+            {
+                $toolbar.css({
+                    position: position,
+                    top: (top + this.opts.toolbarFixedTopOffset) + 'px',
+                    width: $container.width() + 'px'
+                });
+            }
 
             var dropdown = this.toolbar.getDropdown();
             if (dropdown) dropdown.updatePosition();
@@ -14199,6 +14313,7 @@ $R.add('class', 'input.delete', {
         this.component = app.component;
         this.inspector = app.inspector;
         this.selection = app.selection;
+        this.insertion = app.insertion;
 
         // local
         this.key = key;
@@ -14229,6 +14344,14 @@ $R.add('class', 'input.delete', {
         if (this._detectVariableOrNonEditable() || this.selection.hasNonEditable())
         {
             e.preventDefault();
+            return;
+        }
+
+        // all selected
+        if (this.selection.isAll())
+        {
+            e.preventDefault();
+            this.insertion.set(this.opts.emptyHtml);
             return;
         }
 
@@ -15085,6 +15208,7 @@ $R.add('class', 'input.paste', {
         html = (returned === undefined) ? html : returned;
 
         // clean
+        html = html.trim();
         html = (this.isRawCode) ? html : this.cleaner.paste(html);
         html = (this.isRawCode) ? this.cleaner.encodePhpCode(html) : html;
 
@@ -15458,6 +15582,11 @@ $R.add('module', 'upload', {
 
         if (this.opts.multipleUpload) this.$el.attr('multiple', 'multiple');
         else this.$el.removeAttr('multiple');
+
+        if (this.p.name !== 'file')
+        {
+            this.$el.attr('accept', 'image/*');
+        }
 
         this._buildPlaceholder();
         this._buildEvents();
@@ -16468,12 +16597,10 @@ $R.add('class', 'image.component', {
         if (title === '')
         {
             this.$element.removeAttr('alt');
-            this.$element.removeAttr('title');
         }
         else
         {
             this.$element.attr('alt', title);
-            this.$element.attr('title', title);
         }
 
     },
@@ -16579,11 +16706,8 @@ $R.add('class', 'image.component', {
     _get_title: function()
     {
         var alt = this.$element.attr('alt');
-        var title = this.$element.attr('title');
 
-        if (alt) return alt;
-        else if (title) return title;
-        else return '';
+        return (alt) ? alt : '';
     },
     _get_caption: function()
     {
@@ -17981,6 +18105,65 @@ $R.add('class', 'video.component', {
     }
 });
 
+$R.add('class', 'widget.component', {
+    mixins: ['dom', 'component'],
+    init: function(app, el)
+    {
+        this.app = app;
+
+        // init
+        return (el && el.cmnt !== undefined) ? el : this._init(el);
+    },
+    getData: function()
+    {
+        return {
+            html: this._getHtml()
+        };
+    },
+
+    // private
+    _init: function(el)
+    {
+        if (typeof el !== 'undefined')
+        {
+            var $node = $R.dom(el);
+            var $figure = $node.closest('figure');
+            if ($figure.length !== 0)
+            {
+                this.parse($figure);
+            }
+            else
+            {
+                this.parse('<figure>');
+                this.html(el);
+            }
+        }
+        else
+        {
+            this.parse('<figure>');
+        }
+
+
+        this._initWrapper();
+    },
+    _getHtml: function()
+    {
+        var $wrapper = $R.dom('<div>');
+        $wrapper.html(this.html());
+        $wrapper.find('.redactor-component-caret').remove();
+
+        return $wrapper.html();
+    },
+    _initWrapper: function()
+    {
+        this.addClass('redactor-component');
+        this.attr({
+            'data-redactor-type': 'widget',
+            'tabindex': '-1',
+            'contenteditable': false
+        });
+    }
+});
 
     window.Redactor = window.$R = $R;
 

@@ -1,4 +1,4 @@
-/*!   - 2019-02-14 */
+/*!   - 2019-04-23 */
 (function($){
 
 /** global: Craft */
@@ -2096,12 +2096,13 @@ Craft.BaseElementIndex = Garnish.Base.extend(
         },
 
         initSourceToggle: function($source) {
+            // Remove handlers for the same thing. Just in case.
+            this.deinitSourceToggle($source);
+
             var $toggle = this._getSourceToggle($source);
 
             if ($toggle.length) {
-                // Remove handlers for the same thing. Just in case.
-                this.removeListener($toggle, 'click', '_handleSourceToggleClick');
-
+                this.addListener($source, 'dblclick', '_handleSourceDblClick');
                 this.addListener($toggle, 'click', '_handleSourceToggleClick');
                 $source.data('hasNestedSources', true);
             } else {
@@ -2117,8 +2118,8 @@ Craft.BaseElementIndex = Garnish.Base.extend(
 
         deinitSourceToggle: function($source) {
             if ($source.data('hasNestedSources')) {
-                var $toggle = this._getSourceToggle($source);
-                this.removeListener($toggle, 'click');
+                this.removeListener($source, 'dblclick');
+                this.removeListener(this._getSourceToggle($source), 'click');
             }
 
             $source.removeData('hasNestedSources');
@@ -3058,6 +3059,11 @@ Craft.BaseElementIndex = Garnish.Base.extend(
         _handleSelectionChange: function() {
             this.updateActionTriggers();
             this.onSelectionChange();
+        },
+
+        _handleSourceDblClick: function(ev) {
+            this._toggleSource($(ev.currentTarget));
+            ev.stopPropagation();
         },
 
         _handleSourceToggleClick: function(ev) {
@@ -8803,7 +8809,7 @@ Craft.AssetSelectInput = Craft.BaseElementSelectInput.extend(
          * Handle element being focused
          * @private
          */
-        _onElementFocus: function (ev) {
+        _onElementFocus: function(ev) {
             var $element = $(ev.item);
 
             if (Craft.PreviewFileModal.openInstance && $element.length) {
@@ -8931,9 +8937,13 @@ Craft.AssetSelectInput = Craft.BaseElementSelectInput.extend(
             if (data.result.error) {
                 alert(data.result.error);
             } else {
-                var elementId = data.result.assetId;
+                var parameters = {
+                    elementId: data.result.assetId,
+                    siteId: this.settings.criteria.siteId,
+                    size: this.settings.viewMode
+                };
 
-                Craft.postActionRequest('elements/get-element-html', {elementId: elementId, siteId: this.settings.criteria.siteId}, function (data) {
+                Craft.postActionRequest('elements/get-element-html', parameters, function(data) {
                     if (data.error) {
                         alert(data.error);
                     } else {
@@ -11037,7 +11047,7 @@ Craft.CP = Garnish.Base.extend(
                         this.selectTab(ev.currentTarget);
                     });
 
-                    if (href === document.location.hash) {
+                    if (encodeURIComponent(href.substr(1)) === document.location.hash.substr(1)) {
                         this.selectTab(a);
                     }
                 }
@@ -13505,7 +13515,7 @@ Craft.ElevatedSessionManager = Garnish.Base.extend(
             this.clearLoginError();
 
             var data = {
-                password: this.$passwordInput.val()
+                currentPassword: this.$passwordInput.val()
             };
 
             Craft.postActionRequest('users/start-elevated-session', data, $.proxy(function(response, textStatus) {

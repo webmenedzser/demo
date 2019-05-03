@@ -337,6 +337,11 @@ class GeneralConfig extends BaseObject
      *     ],
      * ],
      * ```
+     *
+     * ::: tip
+     * File extensions listed here won’t immediately be allowed to be uploaded. You will also need to list them with
+     * the [[$extraAllowedFileExtensions]] config setting.
+     * :::
      */
     public $extraFileKinds = [];
     /**
@@ -721,7 +726,7 @@ class GeneralConfig extends BaseObject
      */
     public $suppressTemplateErrors = false;
     /**
-     * @var string|array|null Configures Craft to send all system emails to a single email address, or an array of email addresses for testing
+     * @var string|array|false|null Configures Craft to send all system emails to a single email address, or an array of email addresses for testing
      * purposes.
      *
      * By default the recipient name(s) will be “Test Recipient”, but you can customize that by setting the value with the format `['email@address.com' => 'Name']`.
@@ -809,6 +814,11 @@ class GeneralConfig extends BaseObject
      * If set to `true`, a hard copy of your system’s project config will be saved in `config/project.yaml`,
      * and any changes to `config/project.yaml` will be applied back to the system, making it possible for
      * multiple environments to share the same project config despite having separate databases.
+     *
+     * ::: warning
+     * Make sure you’ve read the entire [Project Config](https://docs.craftcms.com/v3/project-config.html)
+     * documentation, and carefully follow the “Enabling the Project Config File” steps when enabling this setting.
+     * :::
      */
     public $useProjectConfigFile = false;
     /**
@@ -817,6 +827,13 @@ class GeneralConfig extends BaseObject
      * See [[ConfigHelper::durationInSeconds()]] for a list of supported value types.
      */
     public $verificationCodeDuration = 86400;
+    /**
+     * @var mixed The URI that users without access to the Control Panel should be redirected to after verifying a new email address.
+     *
+     * See [[ConfigHelper::localizedValue()]] for a list of supported value types.
+     * @see getVerifyEmailSuccessPath()
+     */
+    public $verifyEmailSuccessPath = '';
 
     /**
      * @var array Stores any custom config settings
@@ -963,6 +980,18 @@ class GeneralConfig extends BaseObject
     public function getActivateAccountSuccessPath(string $siteHandle = null): string
     {
         return ConfigHelper::localizedValue($this->activateAccountSuccessPath, $siteHandle);
+    }
+
+    /**
+     * Returns the localized Verify Email Success Path value.
+     *
+     * @param string|null $siteHandle The site handle the value should be defined for. Defaults to the current site.
+     * @return string
+     * @see verifyEmailSuccessPath
+     */
+    public function getVerifyEmailSuccessPath(string $siteHandle = null): string
+    {
+        return ConfigHelper::localizedValue($this->verifyEmailSuccessPath, $siteHandle);
     }
 
     /**

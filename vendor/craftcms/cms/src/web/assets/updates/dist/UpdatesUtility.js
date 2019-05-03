@@ -81,7 +81,7 @@
             },
 
             processUpdate: function(updateInfo, isPlugin) {
-                if (!updateInfo.releases.length && updateInfo.status !== 'expired') {
+                if (!updateInfo.releases.length) {
                     return;
                 }
 
@@ -113,6 +113,11 @@
                         type: 'hidden',
                         name: 'install['+updates[i].updateInfo.handle+']',
                         value: updates[i].updateInfo.latestVersion
+                    }));
+                    $form.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'packageNames['+updates[i].updateInfo.handle+']',
+                        value: updates[i].updateInfo.packageName
                     }));
                 }
 

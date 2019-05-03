@@ -2,6 +2,20 @@
 
 In addition to the template filters that [Twig comes with](https://twig.symfony.com/doc/filters/index.html), Craft provides a few of its own.
 
+## `ascii`
+
+Converts a string to ASCII characters.
+
+```twig
+{{ 'über'|ascii }} → uber
+```
+
+By default, the current site’s language will be used when choosing ASCII character mappings. You can override that by passing in a different locale ID.
+
+```twig
+{{ 'über'|ascii('de') }} → ueber
+```
+
 ## `atom`
 
 Converts a date to an ISO-8601 timestamp (e.g. `2019-01-29T10:00:00-08:00`), which should be used for Atom feeds, among other things.
@@ -27,11 +41,11 @@ Runs an array through [ArrayHelper::getColumn()](api:yii\helpers\BaseArrayHelper
 {% set entryIds = entries|column('id') %}
 ```
 
-## `currency( currency, numberOptions, textOptions, stripZeroCents )`
+## `currency( currency, numberOptions, textOptions, stripZeros )`
 
 Formats a number with a given currency according to the user’s preferred language.
 
-If you pass `true` into the last argument, the “.00” will be stripped if there’s zero cents.
+If you pass `true` into the last argument, the fraction digits will be removed if the value to be formatted has no minor value (e.g. cents).
 
 See [here for a list](api:yii\i18n\Formatter::$numberFormatterOptions) of the possible `numberOptions`.
 
@@ -361,7 +375,16 @@ Or you can replace one thing at a time:
 You can also use a regular expression to search for matches by starting and ending the replacement string’s value with forward slashes:
 
 ```twig
-{{ tag.name|lower|replace('/[^\\w]+/', '-') }}
+{{ tag.title|lower|replace('/[^\\w]+/', '-') }}
+```
+
+## `round`
+
+Rounds off a number to the closest integer.
+
+```twig
+{{ 42.1|round }} → 42
+{{ 42.9|round }} → 43
 ```
 
 ## `rss`

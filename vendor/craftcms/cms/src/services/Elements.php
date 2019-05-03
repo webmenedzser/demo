@@ -587,7 +587,7 @@ class Elements extends Component
         $element->getFieldValues();
         /** @var Element $mainClone */
         $mainClone = clone $element;
-        $mainClone->setAttributes($newAttributes);
+        $mainClone->setAttributes($newAttributes, false);
         $mainClone->duplicateOf = $element;
         $mainClone->id = null;
         $mainClone->contentId = null;
@@ -620,7 +620,7 @@ class Elements extends Component
 
                     /** @var Element $siteClone */
                     $siteClone = clone $siteElement;
-                    $siteClone->setAttributes($newAttributes);
+                    $siteClone->setAttributes($newAttributes, false);
                     $siteClone->duplicateOf = $siteElement;
                     $siteClone->propagating = true;
                     $siteClone->id = $mainClone->id;
@@ -987,17 +987,15 @@ class Elements extends Component
                 Craft::$app->getDb()->createCommand()
                     ->delete(Table::ELEMENTS, ['id' => $element->id])
                     ->execute();
+                Craft::$app->getDb()->createCommand()
+                    ->delete(Table::SEARCHINDEX, ['elementId' => $element->id])
+                    ->execute();
             } else {
                 // Soft delete the elements table row
                 Craft::$app->getDb()->createCommand()
                     ->softDelete(Table::ELEMENTS, ['id' => $element->id])
                     ->execute();
             }
-
-            // Always hard delete the search indexes
-            Craft::$app->getDb()->createCommand()
-                ->delete(Table::SEARCHINDEX, ['elementId' => $element->id])
-                ->execute();
 
             $element->afterDelete();
 
@@ -1514,6 +1512,7 @@ class Elements extends Component
     {
         /** @var Element $element */
         // Try to fetch the element in this site
+        /** @var Element|null $siteElement */
         $siteElement = null;
         if (!$isNewElement) {
             $siteElement = $this->getElementById($element->id, get_class($element), $siteInfo['siteId']);
@@ -1521,13 +1520,13 @@ class Elements extends Component
 
         // If it doesn't exist yet, just clone the master site
         if ($isNewSiteForElement = ($siteElement === null)) {
-            /** @var Element $siteElement */
             $siteElement = clone $element;
             $siteElement->siteId = $siteInfo['siteId'];
             $siteElement->contentId = null;
             $siteElement->enabledForSite = $siteInfo['enabledByDefault'];
         } else {
             $siteElement->enabled = $element->enabled;
+            $siteElement->resaving = $element->resaving;
         }
 
         // Copy any non-translatable field values

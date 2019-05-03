@@ -22,7 +22,7 @@
                     <icon icon="check" />
                     {{feature.name}}
 
-                    <info-hud>
+                    <info-hud v-if="feature.description">
                         {{feature.description}}
                     </info-hud>
                 </li>
@@ -45,7 +45,6 @@
     import EditionBadge from '../EditionBadge'
 
     export default {
-
         props: ['edition'],
 
         components: {
@@ -56,7 +55,6 @@
         },
 
         computed: {
-
             ...mapGetters({
                 getCmsEditionFeatures: 'craft/getCmsEditionFeatures',
             }),
@@ -87,7 +85,6 @@
                 }
             }
         },
-
     }
 </script>
 
@@ -119,22 +116,17 @@
                     &:first-child {
                         @apply .border-t;
                     }
-
-                    svg[data-icon="info-circle"] {
-                        path {
-                            fill: #ccc;
-                        }
-                    }
                 }
             }
         }
 
         .cms-edition-actions {
             position: relative;
-            .spinner {
+            .c-spinner {
                 position: absolute;
-                bottom: -32px;
+                bottom: -30px;
                 left: 50%;
+                margin-left: -11px;
             }
 
             .c-btn {

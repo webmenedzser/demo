@@ -361,7 +361,7 @@ class Users extends Component
     /**
      * Sends a password reset email to a user.
      *
-     * A new verification code will generated for the user overwriting any existing one.
+     * A new verification code be will generated for the user, overwriting any existing one.
      *
      * @param User $user The user to send the forgot password email to.
      * @return bool Whether the email was sent successfully.
@@ -1077,7 +1077,10 @@ class Users extends Component
         $projectConfig = Craft::$app->getProjectConfig();
         $fieldLayouts = $projectConfig->get(self::CONFIG_USERLAYOUT_KEY);
 
-        // Loop through the volumes and prune the UID from field layouts.
+        // Engage stealth mode
+        $projectConfig->muteEvents = true;
+
+        // Prune the user field layout.
         if (is_array($fieldLayouts)) {
             foreach ($fieldLayouts as $layoutUid => $layout) {
                 if (!empty($layout['tabs'])) {
@@ -1087,6 +1090,12 @@ class Users extends Component
                 }
             }
         }
+
+        // Nuke all the layout fields from the DB
+        Craft::$app->getDb()->createCommand()->delete('{{%fieldlayoutfields}}', ['fieldId' => $field->id])->execute();
+
+        // Allow events again
+        $projectConfig->muteEvents = false;
     }
 
     // Private Methods

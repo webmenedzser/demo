@@ -915,8 +915,9 @@ class EntryQuery extends ElementQuery
                     ->select(['structureId'])
                     ->from([Table::SECTIONS])
                     ->where(Db::parseParam('id', $this->sectionId))
+                    ->andWhere(['type' => Section::TYPE_STRUCTURE])
                     ->scalar();
-                $this->structureId = $structureId ? (int)$structureId : false;
+                $this->structureId = (int)$structureId ?: false;
             }
 
             $this->subQuery->andWhere(Db::parseParam('entries.sectionId', $this->sectionId));
