@@ -9,5 +9,4 @@ return array(
     'Twig_' => array($vendorDir . '/twig/twig/lib'),
     'Imagine' => array($vendorDir . '/pixelandtonic/imagine/lib'),
     'HTMLPurifier' => array($vendorDir . '/ezyang/htmlpurifier/library'),
-    'Doctrine\\Common\\Lexer\\' => array($vendorDir . '/doctrine/lexer/lib'),
 );

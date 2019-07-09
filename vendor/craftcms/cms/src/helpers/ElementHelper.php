@@ -8,6 +8,7 @@
 namespace craft\helpers;
 
 use Craft;
+use craft\base\BlockElementInterface;
 use craft\base\Element;
 use craft\base\ElementInterface;
 use craft\db\Query;
@@ -33,6 +34,11 @@ class ElementHelper
      */
     public static function createSlug(string $str): string
     {
+        // Special case for the homepage
+        if ($str === '__home__') {
+            return $str;
+        }
+
         // Remove HTML tags
         $str = StringHelper::stripHtml($str);
 
@@ -58,21 +64,24 @@ class ElementHelper
         // No URL format, no URI.
         if ($uriFormat === null) {
             $element->uri = null;
+            return;
+        }
 
+        // If the URL format returns an empty string, the URL format probably wrapped everything in a condition
+        $testUri = self::_renderUriFormat($uriFormat, $element);
+        if ($testUri === '') {
+            $element->uri = null;
             return;
         }
 
         // Does the URL format even have a {slug} tag?
         if (!static::doesUriFormatHaveSlugTag($uriFormat)) {
-            $testUri = self::_renderUriFormat($uriFormat, $element);
-
             // Make sure it's unique
             if (!self::_isUniqueUri($testUri, $element)) {
                 throw new OperationAbortedException('Could not find a unique URI for this element');
             }
 
             $element->uri = $testUri;
-
             return;
         }
 
@@ -114,7 +123,6 @@ class ElementHelper
                 // OMG!
                 $element->slug = $testSlug;
                 $element->uri = $testUri;
-
                 return;
             }
 
@@ -165,6 +173,8 @@ class ElementHelper
             ->innerJoin('{{%elements}} elements', '[[elements.id]] = [[elements_sites.elementId]]')
             ->where([
                 'elements_sites.siteId' => $element->siteId,
+                'elements.draftId' => null,
+                'elements.revisionId' => null,
                 'elements.dateDeleted' => null,
             ]);
 
@@ -179,8 +189,10 @@ class ElementHelper
             ]);
         }
 
-        if ($element->id) {
-            $query->andWhere(['not', ['elements.id' => $element->id]]);
+        if (($sourceId = $element->getSourceId()) !== null) {
+            $query->andWhere(['not', [
+                'elements.id' => $sourceId,
+            ]]);
         }
 
         return (int)$query->count() === 0;
@@ -276,6 +288,33 @@ class ElementHelper
         }
 
         return $siteIds;
+    }
+
+    /**
+     * Returns the root element of a given element.
+     *
+     * @param ElementInterface $element
+     * @return ElementInterface
+     */
+    public static function rootElement(ElementInterface $element): ElementInterface
+    {
+        if ($element instanceof BlockElementInterface) {
+            return static::rootElement($element->getOwner());
+        }
+        return $element;
+    }
+
+    /**
+     * Returns whether the given element (or its root element if a block element) is a draft or revision.
+     *
+     * @param ElementInterface $element
+     * @return bool
+     */
+    public static function isDraftOrRevision(ElementInterface $element): bool
+    {
+        /** @var Element $root */
+        $root = ElementHelper::rootElement($element);
+        return $root->getIsDraft() || $root->getIsRevision();
     }
 
     /**
