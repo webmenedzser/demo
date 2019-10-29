@@ -70,39 +70,36 @@ If you want to install the site locally, follow these instructions:
 1. Download/clone the repo on your computer:
 
    ```bash
-   git clone https://github.com/craftcms/demo.git happylager.test
+   git clone https://github.com/webmenedzser/demo.git happylager.test
    ```
 
-2. Run `composer install` within the clone:
+2. Copy the `.env.example` file at the root of the project to `.env`. If you want to change the credentials for your `happy_lager_database` Docker container, generate new values for `DB_USER`, `DB_PASSWORD`, and `DB_ROOT_PASSWORD` variables. (If you’re on a Mac, you may need to type <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>.</kbd> in Finder to show hidden files.)
+
+3. Look into `.docker/Dockerfile_php` and change 1000 to your [UID and GID](https://kb.iu.edu/d/adwf)
+
+4. Start the containers: 
 
    ```bash
    cd happylager.test
-   composer install
+   docker-compose up -d
    ```
 
-3. Copy the `.env.example` file at the root of the project to `.env`, and set its `DB_SERVER`, `DB_USER`, and `DB_PASSWORD`  variables to the correct values. (If you’re on a Mac, you may need to type <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>.</kbd> in Finder to show hidden files.)
+5. Run `composer install` inside the `php` container:
 
-4. Ensure that the following files and directories have permissions that will allow PHP to read and write to them:
+   ```bash
+   docker-compose exec php composer install
+   ```
+6. Point your browser at `http://happylager.localhost:3000` (or the URL you set in `.env` for `DEFAULT_SITE_URL` - make sure to change the port here, too). You should see the Happy Lager homepage.
 
-   - `.env`
-   - `composer.json`
-   - `composer.lock`
-   - `config/license.key`
-   - `storage/*`
-   - `vendor/*`
-   - `web/cpresources/*`
+> If you set your UID and GID in step 3, permissions should be fine.  
 
-5. Create a new MySQL database called `happylager`, and import `happylager.sql` into it.
+> Docker Compose and the database container will automatically create a database and import `happylager.sql` into it (`docker-compose.yml` lines 66-67.). 
 
-6. Create a new virtual host with the hostname `happylager.test` that points to the `happylager.test/web/` folder.
-
-7. Edit your `hosts` file to resolve `happylager.test` to `127.0.0.1`, if necessary.
-
-Now point your browser at `http://happylager.test`. You should see the Happy Lager homepage.
+> `.localhost` domains should always resolve to your local machine - at least on Linux. Please, test this and let me know if this doesn't work the same way on Mac. 
 
 ## Logging in
 
-The Craft Control Panel is located at `http://happylager.test/admin`. You can log in with the following credentials:
+The Craft Control Panel is located at `http://happylager.localhost:3000/admin`. You can log in with the following credentials:
 
 * Username: `admin`
 * Password: `password`
