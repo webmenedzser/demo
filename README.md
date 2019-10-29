@@ -75,7 +75,7 @@ If you want to install the site locally, follow these instructions:
 
 2. Copy the `.env.example` file at the root of the project to `.env`. If you want to change the credentials for your `happy_lager_database` Docker container, generate new values for `DB_USER`, `DB_PASSWORD`, and `DB_ROOT_PASSWORD` variables. (If you’re on a Mac, you may need to type <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>.</kbd> in Finder to show hidden files.)
 
-3. Look into `.docker/Dockerfile_php` and change 1000 to your [UID and GID](https://kb.iu.edu/d/adwf)
+3. Look into `.docker/Dockerfile_php` and change 1000 to your [UID and GID](https://kb.iu.edu/d/adwf). 
 
 4. Start the containers: 
 
