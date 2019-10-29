@@ -27,8 +27,8 @@ services:
 
   web:
     build:
-      context: ./.docker
-      dockerfile: Dockerfile_web
+      context: ./
+      dockerfile: ./.docker/Dockerfile_web
     container_name: ${COMPOSE_PROJECT_NAME}_web
     working_dir: /var/www/
     restart: always
@@ -54,8 +54,8 @@ services:
 
   php:
     build:
-      context: ./.docker
-      dockerfile: Dockerfile_php
+      context: ./
+      dockerfile: ./.docker/Dockerfile_php
     container_name: ${COMPOSE_PROJECT_NAME}_php
     working_dir: /var/www
     restart: always
@@ -69,8 +69,8 @@ services:
 
   database:
     build:
-      context: ./.docker
-      dockerfile: Dockerfile_database
+      context: ./
+      dockerfile: ./.docker/Dockerfile_database
     container_name: ${COMPOSE_PROJECT_NAME}_database
     restart: always
     environment:
@@ -92,8 +92,8 @@ services:
 
   redis:
     build:
-      context: ./.docker
-      dockerfile: Dockerfile_redis
+      context: ./
+      dockerfile: ./.docker/Dockerfile_redis
     container_name: ${COMPOSE_PROJECT_NAME}_redis
     restart: always
     expose:
