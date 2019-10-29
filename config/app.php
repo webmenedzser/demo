@@ -17,5 +17,20 @@ return [
     'modules' => [
         'my-module' => \modules\Module::class,
     ],
-    //'bootstrap' => ['my-module'],
+
+    'components' => [
+        'redis' => [
+            'class' => yii\redis\Connection::class,
+            'hostname' => 'redis',
+            'port' => 6379
+        ],
+        'cache' => [
+            'class' => yii\redis\Cache::class,
+            'defaultDuration' => 86400,
+        ],
+        'session' => [
+            'class' => yii\redis\Session::class,
+            'as session' => craft\behaviors\SessionBehavior::class,
+        ]
+    ]
 ];
