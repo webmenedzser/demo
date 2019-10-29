@@ -1,0 +1,19 @@
+# Use this image as base
+FROM webmenedzser/craftcms-php:latest
+
+# Change www-data user's UID & GID
+RUN apk add shadow && \
+    usermod -u 1000 www-data && \
+    groupmod -g 1000 www-data && \
+    apk add jpegoptim optipng gifsicle libwebp-tools
+
+# Use the default production configuration
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# Add custom PHP settings
+COPY .docker/zzz-settings-override.ini /usr/local/etc/php/conf.d/zzz-settings-override.ini
+
+# Override php-fpm settings
+COPY .docker/zzz-www.conf /usr/local/etc/php-fpm.d/zzz-www.conf
+
+USER www-data:www-data

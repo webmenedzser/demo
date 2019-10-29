@@ -1,0 +1,8 @@
+# Use this image as base
+FROM redis:alpine
+
+# Custom config for Redis server
+COPY .docker/redis.conf /usr/local/etc/redis/redis.conf
+
+# Run with custom command
+CMD [ "redis-server", "/usr/local/etc/redis/redis.conf", "--appendonly", "yes" ]

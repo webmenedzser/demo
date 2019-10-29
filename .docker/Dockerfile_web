@@ -1,0 +1,2 @@
+# Use this image as base
+FROM webmenedzser/craftcms-nginx:latest

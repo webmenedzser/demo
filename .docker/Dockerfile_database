@@ -1,0 +1,5 @@
+# Use this image as base
+FROM mariadb:latest
+
+# Add custom settings
+COPY .docker/zzz-mariadb.cnf /etc/mysql/conf.d/zzz-mariadb.cnf
