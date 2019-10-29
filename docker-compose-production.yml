@@ -1,0 +1,107 @@
+# Docker-based Craft CMS 3 setup
+# Author: Otto Radics
+#
+# Below you can find the definitions of two containers:
+# the first is based on php:7.2-apache image, the other one is
+# based on mariadb:latest.
+#
+# You can find more details about the build process in the  Dockerfile_webserver.
+#
+# Please run ./setup.sh before `docker-compose up`: the .env file is needed for
+# Docker Compose to start this project.
+#
+# Do you have any questions?
+# Feel free to contact me: otto@webmenedzser.hu.
+
+volumes:
+  database_volume: {}
+
+networks:
+  hosting-with-docker_nginx_reverse_proxy:
+    external: true
+  default:
+    external: false
+
+version: '3.6'
+services:
+
+  web:
+    build:
+      context: ./.docker
+      dockerfile: Dockerfile_web
+    container_name: ${COMPOSE_PROJECT_NAME}_web
+    working_dir: /var/www/
+    restart: always
+    volumes:
+      - ./:/var/www/
+    depends_on:
+      - database
+      - php
+    expose:
+      - 80
+    networks:
+      - default
+      - hosting-with-docker_nginx_reverse_proxy
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - LETSENCRYPT_HOST=${VIRTUAL_HOST}
+      - LETSENCRYPT_EMAIL=otto@webmenedzser.hu
+    logging:
+      driver: json-file
+      options:
+        max-size: '1m'
+        max-file: '3'
+
+  php:
+    build:
+      context: ./.docker
+      dockerfile: Dockerfile_php
+    container_name: ${COMPOSE_PROJECT_NAME}_php
+    working_dir: /var/www
+    restart: always
+    volumes:
+      - ./:/var/www/
+    logging:
+      driver: json-file
+      options:
+        max-size: '1m'
+        max-file: '3'
+
+  database:
+    build:
+      context: ./.docker
+      dockerfile: Dockerfile_database
+    container_name: ${COMPOSE_PROJECT_NAME}_database
+    restart: always
+    environment:
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      - database_volume:/var/lib/mysql
+    expose:
+      - 3306
+    networks:
+      - default
+    logging:
+      driver: json-file
+      options:
+        max-size: '1m'
+        max-file: '3'
+
+  redis:
+    build:
+      context: ./.docker
+      dockerfile: Dockerfile_redis
+    container_name: ${COMPOSE_PROJECT_NAME}_redis
+    restart: always
+    expose:
+      - '6379'
+    sysctls:
+      net.core.somaxconn: '511'
+    logging:
+      driver: json-file
+      options:
+        max-size: '1m'
+        max-file: '3'
