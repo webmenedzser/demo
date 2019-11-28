@@ -1,18 +1,3 @@
-# Docker-based Craft CMS 3 setup
-# Author: Otto Radics
-#
-# Below you can find the definitions of two containers:
-# the first is based on php:7.2-apache image, the other one is
-# based on mariadb:latest.
-#
-# You can find more details about the build process in the  Dockerfile_webserver.
-#
-# Please run ./setup.sh before `docker-compose up`: the .env file is needed for
-# Docker Compose to start this project.
-#
-# Do you have any questions?
-# Feel free to contact me: otto@webmenedzser.hu.
-
 volumes:
   database_volume: {}
 
@@ -32,11 +17,6 @@ services:
       - php
     ports:
       - 3000:80
-    logging:
-      driver: json-file
-      options:
-        max-size: '1m'
-        max-file: '3'
 
   php:
     build:
@@ -46,11 +26,6 @@ services:
     working_dir: /var/www
     volumes:
       - ./:/var/www/
-    logging:
-      driver: json-file
-      options:
-        max-size: '1m'
-        max-file: '3'
 
   database:
     build:
@@ -68,11 +43,6 @@ services:
      - database_volume:/var/lib/mysql
     expose:
      - 3306
-    logging:
-      driver: json-file
-      options:
-        max-size: '1m'
-        max-file: '3'
 
   redis:
     build:
@@ -83,8 +53,9 @@ services:
       - '6379'
     sysctls:
       net.core.somaxconn: '511'
-    logging:
-      driver: json-file
-      options:
-        max-size: '1m'
-        max-file: '3'
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: ${COMPOSE_PROJECT_NAME}_mailhog
+    ports:
+      - 8025:8025
